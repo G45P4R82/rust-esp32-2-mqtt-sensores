@@ -187,7 +187,7 @@ mosquitto_sub \
 
 O payload inclui `temperature_c`, `humidity_percent`, `sensor_status`, `wifi_status`, `mqtt_status`, `led_state`, contadores de reconexão e localização.
 
-O horário enviado é UTC e inclui:
+O `timestamp_unix` é UTC. Os campos separados de data e hora são convertidos para o horário local de Campinas, `America/Sao_Paulo` (`UTC-3`):
 
 ```json
 {
@@ -198,6 +198,8 @@ O horário enviado é UTC e inclui:
   "hora": 15,
   "minuto": 24,
   "segundo": 37,
+  "timezone": "America/Sao_Paulo",
+  "utc_offset_hours": -3,
   "time_status": "synchronized"
 }
 ```

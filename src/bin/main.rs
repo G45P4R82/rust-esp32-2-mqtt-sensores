@@ -29,6 +29,7 @@ const TOPIC: &str = secrets::MQTT_TOPIC;
 const LATITUDE: &str = secrets::LATITUDE;
 const LONGITUDE: &str = secrets::LONGITUDE;
 const TEMPERATURE_OFFSET_CENTI: i32 = secrets::TEMPERATURE_OFFSET_CENTI;
+const LOCAL_UTC_OFFSET_SECONDS: i64 = -3 * 60 * 60;
 
 const LED_BOOT: u8 = 0;
 const LED_WIFI_CONNECTING: u8 = 1;
@@ -154,13 +155,13 @@ async fn main(spawner: Spawner) -> ! {
             LED_STATE.store(LED_MQTT_CONNECTING, Ordering::Relaxed);
         }
 
-        let mut payload: String<512> = String::new();
-        let mut time_fields: String<128> = String::new();
+        let mut payload: String<768> = String::new();
+        let mut time_fields: String<192> = String::new();
         if let Some(unix_seconds) = current_unix_seconds() {
-            let (year, month, day, hour, minute, second) = unix_to_calendar(unix_seconds);
-            let _ = write!(time_fields, "\"timestamp_unix\":{},\"ano\":{},\"mes\":{},\"dia\":{},\"hora\":{},\"minuto\":{},\"segundo\":{},\"time_status\":\"synchronized\"", unix_seconds, year, month, day, hour, minute, second);
+            let (year, month, day, hour, minute, second) = unix_to_calendar(unix_seconds as i64 + LOCAL_UTC_OFFSET_SECONDS);
+            let _ = write!(time_fields, "\"timestamp_unix\":{},\"ano\":{},\"mes\":{},\"dia\":{},\"hora\":{},\"minuto\":{},\"segundo\":{},\"timezone\":\"America/Sao_Paulo\",\"utc_offset_hours\":-3,\"time_status\":\"synchronized\"", unix_seconds, year, month, day, hour, minute, second);
         } else {
-            let _ = write!(time_fields, "\"timestamp_unix\":null,\"ano\":null,\"mes\":null,\"dia\":null,\"hora\":null,\"minuto\":null,\"segundo\":null,\"time_status\":\"unsynchronized\"");
+            let _ = write!(time_fields, "\"timestamp_unix\":null,\"ano\":null,\"mes\":null,\"dia\":null,\"hora\":null,\"minuto\":null,\"segundo\":null,\"timezone\":\"America/Sao_Paulo\",\"utc_offset_hours\":-3,\"time_status\":\"unsynchronized\"");
         }
 
         if WIFI_CONNECTED.load(Ordering::Relaxed) {
@@ -375,9 +376,9 @@ fn current_unix_seconds() -> Option<u32> {
     Some(NTP_UNIX_SECONDS.load(Ordering::Relaxed).wrapping_add(elapsed_seconds))
 }
 
-fn unix_to_calendar(unix_seconds: u32) -> (i32, u32, u32, u32, u32, u32) {
-    let seconds_of_day = unix_seconds % 86_400;
-    let days = (unix_seconds / 86_400) as i64;
+fn unix_to_calendar(unix_seconds: i64) -> (i32, u32, u32, u32, u32, u32) {
+    let days = unix_seconds.div_euclid(86_400);
+    let seconds_of_day = unix_seconds.rem_euclid(86_400) as u32;
     let z = days + 719_468;
     let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
     let doe = z - era * 146_097;
@@ -425,7 +426,7 @@ async fn mqtt_publish<T>(connection: &mut T, topic: &str, payload: &[u8]) -> Res
 where
     T: AsyncWrite + Read,
 {
-    let mut body: Vec<u8, 512> = Vec::new();
+    let mut body: Vec<u8, 900> = Vec::new();
     put_utf8(&mut body, topic)?;
     for byte in payload {
         body.push(*byte).map_err(|_| ())?;
@@ -437,7 +438,7 @@ async fn send_packet<T>(connection: &mut T, header: u8, body: &[u8]) -> Result<(
 where
     T: AsyncWrite,
 {
-    let mut packet: Vec<u8, 600> = Vec::new();
+    let mut packet: Vec<u8, 1000> = Vec::new();
     packet.push(header).map_err(|_| ())?;
     let mut length = body.len();
     loop {
