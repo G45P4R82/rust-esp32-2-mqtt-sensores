@@ -1,0 +1,11 @@
+pub const DEVICE_ID: &str = "iot-sensor-002";
+pub const MQTT_TOPIC: &str = "sensores/iot-sensor-002/telemetria";
+pub const WIFI_SSID: &str = "your-wifi-ssid";
+pub const WIFI_PASSWORD: &str = "your-wifi-password";
+pub const MQTT_HOST: [u8; 4] = [192, 168, 1, 10];
+pub const MQTT_PORT: u16 = 1883;
+pub const MQTT_USERNAME: &str = "iot-sensor-002";
+pub const MQTT_PASSWORD: &str = "your-mqtt-password";
+pub const LATITUDE: &str = "-22.831909964368997";
+pub const LONGITUDE: &str = "-47.09750092327114";
+pub const TEMPERATURE_OFFSET_CENTI: i32 = 0;
